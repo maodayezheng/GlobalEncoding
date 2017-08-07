@@ -625,7 +625,7 @@ def debug_test(device):
             idx += 1
 
     with tf.device(device):
-        with open("Data//idx/multi_idx.txt", "r") as data:
+        with open("Data/idx/multi_idx.txt", "r") as data:
             data = json.loads(data.read())
             subset = sorted(data, key=lambda d: len(d))
             l = len(subset[-1])
@@ -635,7 +635,7 @@ def debug_test(device):
             sess = tf.Session(config=tf.ConfigProto(allow_soft_placement=True))
             sess.run(init)
             saver = tf.train.Saver()
-            saver.restore(sess, "code_outputs/2017_07_21_13_39_19/final_model_params.ckpt")
+            saver.restore(sess, "code_outputs/2017_08_03_09_40_06/final_model_params.ckpt")
             source = None
             start = time.clock()
             for datapoint in subset:
