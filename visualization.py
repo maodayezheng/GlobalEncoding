@@ -22,20 +22,19 @@ sess = tf.Session(config=tf.ConfigProto(allow_soft_placement=True))
 sess.run(init)
 saver = tf.train.Saver()
 saver.save(sess, "visualization/latent_embedding.ckpt")
-"""
+
 config = projector.ProjectorConfig()
 
 # You can add multiple embeddings. Here we add only one.
 embedding = config.embeddings.add()
 embedding.tensor_name = embedding_var.name
 # Link this tensor to its metadata file (e.g. labels).
-embedding.metadata_path = os.path.join(LOG_DIR, 'metadata.tsv')
+embedding.metadata_path = os.path.join("visualization", 'metadata.tsv')
 
 # Use the same LOG_DIR where you stored your checkpoint.
-summary_writer = tf.summary.FileWriter(LOG_DIR)
+summary_writer = tf.summary.FileWriter("visualization")
 
 # The next line writes a projector_config.pbtxt in the LOG_DIR. TensorBoard will
 # read this file during startup.
 
 projector.visualize_embeddings(summary_writer, config)
-"""
