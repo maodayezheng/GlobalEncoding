@@ -269,14 +269,16 @@ class BOWRNNBuilder(object):
         auto_out, auto_indices = tf.nn.top_k(candidate_score, k=8195)
 
         # RNN
-        h = tf.zeros(shape=[n_samples*100, self.hid_dim])
+        k_num = 100
+        h = tf.zeros(shape=[n_samples*k_num, self.hid_dim])
         max_z = z
         max_h = tf.zeros(shape=[n_samples, self.hid_dim])
         max_start = tf.zeros(shape=[n_samples, ], dtype="int32")
         max_x = tf.nn.embedding_lookup(input_embedding, max_start)
         prediction = []
         max_pred = []
-        rnn_z = tf.tile(z, [100, 1])
+        rnn_z = tf.tile(z, [k_num, 1])
+        score = tf.zeros(shape=[n_samples*k_num])
         for i in range(max_l):
             # Single step RNN calculate
             h = cell(x, h)
@@ -292,17 +294,20 @@ class BOWRNNBuilder(object):
             max_sample = tf.argmax(max_cadidate_score, axis=1)
             max_clip = tf.reduce_max(candidate_score, axis=-1)
             max_clip = tf.stop_gradient(max_clip)
-            candidate_score = candidate_score - tf.reshape(max_clip, shape=[n_samples*5, 1])
+            candidate_score = candidate_score - tf.reshape(max_clip, shape=[n_samples*k_num, 1])
             candidate_score = tf.exp(candidate_score)
-            candidate_prob = candidate_score / tf.reshape(tf.reduce_sum(candidate_score, axis=-1), [n_samples*5, 1])
+            candidate_prob = candidate_score / tf.reshape(tf.reduce_sum(candidate_score, axis=-1), [n_samples*k_num, 1])
             dist = Categorical(p=candidate_prob)
             samples = dist.sample()
             x = tf.nn.embedding_lookup(input_embedding, samples)
+            score += tf.reduce_sum(o*x, axis=-1)
             max_x = tf.nn.embedding_lookup(input_embedding, max_sample)
-            prediction.append(tf.reshape(samples, [n_samples, 5]))
+            prediction.append(tf.reshape(samples, [n_samples, k_num]))
             max_pred.append(max_sample)
 
-        return prediction, auto_out, auto_indices, max_pred
+        max_sequence = tf.argmax(score, axis=-1)
+
+        return prediction, auto_out, auto_indices, max_pred, max_sequence
 
 
 class AERNNBuilder(object):
@@ -648,7 +653,7 @@ def debug_test(device):
                 else:
                     source = np.concatenate([source, s.reshape((1, s.shape[0]))])
             model_input = {"source:0": source[:, :-1]}
-            rnn_pred, auto_out, ae_pred, max_pred = sess.run(prediction_graph, feed_dict=model_input)
+            rnn_pred, auto_out, ae_pred, max_pred, max_sequence = sess.run(prediction_graph, feed_dict=model_input)
             #l = len(rnn_indices)
         for n in range(len(subset)):
             s_sentence = ""
