@@ -29,7 +29,7 @@ config = projector.ProjectorConfig()
 embedding = config.embeddings.add()
 embedding.tensor_name = embedding_var.name
 # Link this tensor to its metadata file (e.g. labels).
-embedding.metadata_path = os.path.join("visualization", 'metadata.tsv')
+embedding.metadata_path = os.path.join("visualization", 'iris-latin1.tsv')
 
 # Use the same LOG_DIR where you stored your checkpoint.
 summary_writer = tf.summary.FileWriter("visualization")
