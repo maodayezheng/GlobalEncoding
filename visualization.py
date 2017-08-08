@@ -6,13 +6,23 @@ import numpy as np
 N = 10000
 D = 200
 
-multi = np.load()
-quotes = np.load()
-random = np.load()
-straight = np.load()
-e = np.concatenate([multi, quotes. random, straight], axis=0)
+multi = np.load("Data/multi.npy")
+print(multi.shape)
+quotes = np.load("Data/quotes.npy")
+print(quotes.shape)
+random = np.load("Data/random.npy")
+print(random.shape)
+straight = np.load("Data/straight.npy")
+print(straight.shape)
+e = np.concatenate([multi, quotes, random, straight], axis=0)
 
 embedding_var = tf.Variable(e, name='word_embedding')
+init = tf.global_variables_initializer()
+sess = tf.Session(config=tf.ConfigProto(allow_soft_placement=True))
+sess.run(init)
+saver = tf.train.Saver()
+saver.save(sess, "visualization/latent_embedding.ckpt")
+"""
 config = projector.ProjectorConfig()
 
 # You can add multiple embeddings. Here we add only one.
@@ -28,3 +38,4 @@ summary_writer = tf.summary.FileWriter(LOG_DIR)
 # read this file during startup.
 
 projector.visualize_embeddings(summary_writer, config)
+"""
