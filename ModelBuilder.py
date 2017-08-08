@@ -255,8 +255,9 @@ class BOWRNNBuilder(object):
         i_embed = tf.nn.embedding_lookup(input_embedding, source)
         i_embed = tf.reshape(i_embed, [n, s_l, self.en_embed_dim])
 
+        k_num = 100
         # Embedding Look Up
-        start = tf.zeros(shape=[n_samples*5, ], dtype="int32")
+        start = tf.zeros(shape=[n_samples*k_num, ], dtype="int32")
         x = tf.nn.embedding_lookup(input_embedding, start)
 
         ae_input = tf.reshape(i_embed, [n, self.en_embed_dim * self.max_len])
@@ -269,7 +270,6 @@ class BOWRNNBuilder(object):
         auto_out, auto_indices = tf.nn.top_k(candidate_score, k=8195)
 
         # RNN
-        k_num = 100
         h = tf.zeros(shape=[n_samples*k_num, self.hid_dim])
         max_z = z
         max_h = tf.zeros(shape=[n_samples, self.hid_dim])
@@ -305,7 +305,8 @@ class BOWRNNBuilder(object):
             prediction.append(tf.reshape(samples, [n_samples, k_num]))
             max_pred.append(max_sample)
 
-        max_sequence = tf.argmax(score, axis=-1)
+        score = tf.reshape(score, [n_samples, k_num])
+        max_sequence = tf.argmax(score, axis=1)
 
         return prediction, auto_out, auto_indices, max_pred, max_sequence
 

@@ -8,5 +8,5 @@ main_dir = sys.argv[1]
 out_dir = sys.argv[2]
 
 if __name__ == '__main__':
-    training("/gpu:1",out_dir)
+    debug_test("/gpu:1")
 
