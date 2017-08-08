@@ -690,28 +690,14 @@ def debug_test(device):
                             break
                         ae_sample += (" " + vocab[a_s])
                     print(str(i + 1) + "th AE Sample : " + ae_sample)
-
-            """
-            if test_rnn:
-               max_sentence = ""
-               for j in range(l):
-                   temp = max_pred[j]
-                   idx = temp[n]
-                   if idx == 1:
-                       continue
-                   max_sentence += (" " + vocab[idx])
-               print("Argmax : " + max_sentence)
-               for i in range(5):
-                    sample_prediction = ""
-                    for j in range(l):
-                        temp = rnn_indices[j]
-                        temp = temp[n]
-                        idx = temp[i]
-                        if idx == 1:
-                            continue
-                        sample_prediction += (" " + vocab[idx])
-                    print("Sample : " + sample_prediction)
-            """
+            max_like_idx = max_sequence[n]
+            max_like_sen = ""
+            for t in range(16):
+                r_p = rnn_pred[t]
+                r_p = r_p[n]
+                r_p = r_p[max_like_idx]
+                max_like_sen += (" " + vocab[r_p])
+            print("max like : " + max_like_sen)
 
 
 def training(device, out_dir):
