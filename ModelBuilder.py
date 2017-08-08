@@ -655,7 +655,7 @@ def debug_test(device):
                     source = np.concatenate([source, s.reshape((1, s.shape[0]))])
             model_input = {"source:0": source[:, :-1]}
             rnn_pred, auto_out, ae_pred, max_pred, max_sequence, z = sess.run(prediction_graph, feed_dict=model_input)
-            np.save("Data/Sample/BOW/multi.npy", z)
+            np.save("Data/Samples/BOW/multi.npy", z)
             #l = len(rnn_indices)
         for n in range(len(subset)):
             s_sentence = ""
