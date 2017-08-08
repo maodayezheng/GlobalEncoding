@@ -308,7 +308,7 @@ class BOWRNNBuilder(object):
         score = tf.reshape(score, [n_samples, k_num])
         max_sequence = tf.argmax(score, axis=1)
 
-        return prediction, auto_out, auto_indices, max_pred, max_sequence
+        return prediction, auto_out, auto_indices, max_pred, max_sequence, z
 
 
 class AERNNBuilder(object):
@@ -654,7 +654,8 @@ def debug_test(device):
                 else:
                     source = np.concatenate([source, s.reshape((1, s.shape[0]))])
             model_input = {"source:0": source[:, :-1]}
-            rnn_pred, auto_out, ae_pred, max_pred, max_sequence = sess.run(prediction_graph, feed_dict=model_input)
+            rnn_pred, auto_out, ae_pred, max_pred, max_sequence, z = sess.run(prediction_graph, feed_dict=model_input)
+            np.save("Sample/BOW/multi.npy", z)
             #l = len(rnn_indices)
         for n in range(len(subset)):
             s_sentence = ""
@@ -764,4 +765,3 @@ def training(device, out_dir):
         np.save(os.path.join(out_dir, 'rnn_loss.npy'), r_loss)
         np.save(os.path.join(out_dir, 'ae_loss.npy'), a_loss)
         saver.save(sess, out_dir + "/final_model_params.ckpt")
-
