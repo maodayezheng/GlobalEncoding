@@ -631,7 +631,7 @@ def debug_test(device):
             idx += 1
 
     with tf.device(device):
-        with open("Data/idx/multi_idx.txt", "r") as data:
+        with open("Data/idx/random_idx.txt", "r") as data:
             data = json.loads(data.read())
             subset = sorted(data, key=lambda d: len(d))
             l = len(subset[-1])
@@ -655,7 +655,7 @@ def debug_test(device):
                     source = np.concatenate([source, s.reshape((1, s.shape[0]))])
             model_input = {"source:0": source[:, :-1]}
             rnn_pred, auto_out, ae_pred, max_pred, max_sequence, z = sess.run(prediction_graph, feed_dict=model_input)
-            np.save("Data/multi.npy", z)
+            np.save("Data/random.npy", z)
             #l = len(rnn_indices)
         for n in range(len(subset)):
             s_sentence = ""
