@@ -269,14 +269,14 @@ class BOWRNNBuilder(object):
         auto_out, auto_indices = tf.nn.top_k(candidate_score, k=8195)
 
         # RNN
-        h = tf.zeros(shape=[n_samples*5, self.hid_dim])
+        h = tf.zeros(shape=[n_samples*100, self.hid_dim])
         max_z = z
         max_h = tf.zeros(shape=[n_samples, self.hid_dim])
         max_start = tf.zeros(shape=[n_samples, ], dtype="int32")
         max_x = tf.nn.embedding_lookup(input_embedding, max_start)
         prediction = []
         max_pred = []
-        rnn_z = tf.tile(z, [5, 1])
+        rnn_z = tf.tile(z, [100, 1])
         for i in range(max_l):
             # Single step RNN calculate
             h = cell(x, h)

@@ -5,13 +5,13 @@ import os
 N = 10000
 D = 200
 embedding_var = tf.Variable(tf.random_normal([N, D]), name='word_embedding')
-
+source = tf.placeholder(dtype=tf.int32, name="source", shape=[None, 512])
 # Format: tensorflow/tensorboard/plugins/projector/projector_config.proto
 config = projector.ProjectorConfig()
 
 # You can add multiple embeddings. Here we add only one.
 embedding = config.embeddings.add()
-embedding.tensor_name = embedding_var.name
+embedding.tensor_name = source.name
 # Link this tensor to its metadata file (e.g. labels).
 embedding.metadata_path = os.path.join(LOG_DIR, 'metadata.tsv')
 
