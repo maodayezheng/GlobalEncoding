@@ -6,13 +6,13 @@ import numpy as np
 N = 10000
 D = 200
 
-multi = np.load("Data/multi.npy")
+multi = np.load("visualization/ae_multi.npy")
 print(multi.shape)
-quotes = np.load("Data/quotes.npy")
+quotes = np.load("visualization/ae_quotes.npy")
 print(quotes.shape)
-random = np.load("Data/random.npy")
+random = np.load("visualization/ae_random.npy")
 print(random.shape)
-straight = np.load("Data/straight.npy")
+straight = np.load("visualization/ae_straight.npy")
 print(straight.shape)
 e = np.concatenate([multi, quotes, random, straight], axis=0)
 
