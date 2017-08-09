@@ -635,17 +635,17 @@ def debug_test(device):
             idx += 1
 
     with tf.device(device):
-        with open("Data/idx/multi_idx.txt", "r") as data:
+        with open("Data/idx/straight_idx.txt", "r") as data:
             data = json.loads(data.read())
             subset = sorted(data, key=lambda d: len(d))
             l = len(subset[-1])
-            builder = RNNBuilder(8196, 256, 256, 512)
-            prediction_graph = builder.build_prediction_graph(20, 16)
+            builder = BOWRNNBuilder(8196, 256, 256, 512, 512, 16)
+            prediction_graph = builder.build_prediction_graph(len(subset), 16)
             init = tf.global_variables_initializer()
             sess = tf.Session(config=tf.ConfigProto(allow_soft_placement=True))
             sess.run(init)
             saver = tf.train.Saver()
-            saver.restore(sess, "code_outputs/2017_08_08_21_58_33/final_model_params.ckpt")
+            saver.restore(sess, "code_outputs/2017_08_03_09_40_06/final_model_params.ckpt")
             source = None
             start = time.clock()
             for datapoint in subset:
@@ -658,33 +658,33 @@ def debug_test(device):
                 else:
                     source = np.concatenate([source, s.reshape((1, s.shape[0]))])
             model_input = {"source:0": source[:, :-1]}
-            rnn_pred = sess.run(prediction_graph)
-            #np.save("visualization/ae_multi.npy", z)
+            rnn_pred, auto_out, auto_indices, max_pred, max_sequence, z = sess.run(prediction_graph, feed_dict=model_input)
+            np.save("visualization/bow_straight.npy", z)
             #l = len(rnn_indices)
         max_sens = []
-        for n in range(20):
-            s_sentence = ""
-            for idx in subset[n]:
-                if idx == 0:
-                    continue
-                token = vocab[idx]
-                s_sentence = s_sentence + " " + token
-            print("Origin : " + s_sentence)
+        #for n in range(20):
+        #    s_sentence = ""
+        #    for idx in subset[n]:
+        #        if idx == 0:
+        #            continue
+        #        token = vocab[idx]
+        #        s_sentence = s_sentence + " " + token
+        #    print("Origin : " + s_sentence)
             #max_prediction = ""
             #for t in range(16):
             #    m_p = max_pred[t]
             #    m_p = m_p[n]
             #    max_prediction += (" " + vocab[m_p])
             #print("Greedy : " + max_prediction)
-            rnn_sample = ""
-            ae_sample = ""
-            for t in range(16):
-                r_p = rnn_pred[t]
-                r_p = r_p[n]
-                if r_p == 1:
-                    break
-                rnn_sample += (" " + vocab[r_p])
-            print(str(n+1) + "th RNN Sample : " + rnn_sample)
+        #    rnn_sample = ""
+        #   ae_sample = ""
+        #   for t in range(16):
+        #        r_p = rnn_pred[t]
+        #        r_p = r_p[n]
+        #        if r_p == 1:
+        #            break
+        #        rnn_sample += (" " + vocab[r_p])
+        #    print(str(n+1) + "th RNN Sample : " + rnn_sample)
             #    if test_ae:
             #        for t in range(15):
             #            a_s = ae_pred[i]
