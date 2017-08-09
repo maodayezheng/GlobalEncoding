@@ -9,7 +9,7 @@ done
 DIR="$( cd -P "$( dirname "${SOURCE}" )" && pwd )"
 
 OUT_DIR=code_outputs/$(date +%Y_%m_%d_%H_%M_%S)
-export CUDA_VISIBLE_DEVICES=1
+export CUDA_VISIBLE_DEVICES=0
 mkdir ${OUT_DIR}
 
 PYTHON_FILE=${1}

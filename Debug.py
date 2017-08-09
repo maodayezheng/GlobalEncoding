@@ -8,5 +8,5 @@ main_dir = sys.argv[1]
 out_dir = sys.argv[2]
 
 if __name__ == '__main__':
-    debug_test("/gpu:1")
+    debug_test("/gpu:0")
 

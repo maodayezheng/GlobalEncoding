@@ -109,11 +109,8 @@ class RNNBuilder(object):
             candidate_score = candidate_score - tf.reshape(max_clip, shape=[n_samples, 1])
             candidate_score = tf.exp(candidate_score)
             candidate_prob = candidate_score / tf.reshape(tf.reduce_sum(candidate_score, axis=-1), [n_samples, 1])
-            cdf = tf.cumsum(candidate_prob, axis=-1)
-            threshold = tf.random_uniform([n_samples, 1], minval=0.0, maxval=1.0)
-            cdf -= threshold
-            samples = tf.cast(tf.greater_equal(cdf, 0), "float32")
-            samples = tf.argmax(samples, axis=-1)
+            dist = Categorical(p=candidate_prob)
+            samples = dist.sample()
             x = tf.nn.embedding_lookup(input_embedding, samples)
             prediction.append(samples)
 
@@ -470,19 +467,22 @@ class AERNNBuilder(object):
         candidate_score = tf.exp(candidate_score)
         candidate_probs = candidate_score / tf.reduce_sum(candidate_score, axis=-1, keep_dims=True)
         dist = Categorical(p=candidate_probs)
-        ae_sample = dist.sample(sample_shape=(5, ))
-        ae_sample = tf.reshape(ae_sample, [5, n, self.max_len])
+        k_num = 100
+        ae_sample = dist.sample(sample_shape=(k_num, ))
+        ae_sample = tf.reshape(ae_sample, [k_num, n, self.max_len])
         # RNN
-        start = tf.zeros(shape=[n_samples * 5, ], dtype="int32")
+        start = tf.zeros(shape=[n_samples * k_num, ], dtype="int32")
         x = tf.nn.embedding_lookup(input_embedding, start)
-        h = tf.zeros(shape=[n_samples*5, self.hid_dim])
+        h = tf.zeros(shape=[n_samples*k_num, self.hid_dim])
         max_z = z
         max_h = tf.zeros(shape=[n_samples, self.hid_dim])
         max_start = tf.zeros(shape=[n_samples, ], dtype="int32")
         max_x = tf.nn.embedding_lookup(input_embedding, max_start)
         prediction = []
         max_pred = []
-        rnn_z = tf.tile(z, [5, 1])
+        rnn_z = tf.tile(z, [k_num, 1])
+        score = tf.zeros(shape=[n_samples*k_num])
+
         for i in range(max_l):
             # Single step RNN calculate
             h = cell(x, h)
@@ -498,17 +498,21 @@ class AERNNBuilder(object):
             max_sample = tf.argmax(max_cadidate_score, axis=1)
             max_clip = tf.reduce_max(candidate_score, axis=-1)
             max_clip = tf.stop_gradient(max_clip)
-            candidate_score = candidate_score - tf.reshape(max_clip, shape=[n_samples*5, 1])
+            candidate_score = candidate_score - tf.reshape(max_clip, shape=[n_samples*k_num, 1])
             candidate_score = tf.exp(candidate_score)
-            candidate_prob = candidate_score / tf.reshape(tf.reduce_sum(candidate_score, axis=-1), [n_samples*5, 1])
+            candidate_prob = candidate_score / tf.reshape(tf.reduce_sum(candidate_score, axis=-1), [n_samples*k_num, 1])
             dist = Categorical(p=candidate_prob)
             samples = dist.sample()
             x = tf.nn.embedding_lookup(input_embedding, samples)
+            score += tf.reduce_sum(o * x, axis=-1)
             max_x = tf.nn.embedding_lookup(input_embedding, max_sample)
-            prediction.append(tf.reshape(samples, [n_samples, 5]))
+            prediction.append(tf.reshape(samples, [n_samples, k_num]))
             max_pred.append(max_sample)
 
-        return prediction, ae_sample, max_pred
+        score = tf.reshape(score, [n_samples, k_num])
+        max_sequence = tf.argmax(score, axis=1)
+
+        return prediction, ae_sample, max_pred, max_sequence, z
 
 
 class AEBuilder(object):
@@ -631,17 +635,17 @@ def debug_test(device):
             idx += 1
 
     with tf.device(device):
-        with open("Data/idx/random_idx.txt", "r") as data:
+        with open("Data/idx/multi_idx.txt", "r") as data:
             data = json.loads(data.read())
             subset = sorted(data, key=lambda d: len(d))
             l = len(subset[-1])
-            builder = BOWRNNBuilder(8196, 256, 256, 512, 512, 16)
-            prediction_graph = builder.build_prediction_graph(len(subset), 16)
+            builder = RNNBuilder(8196, 256, 256, 512)
+            prediction_graph = builder.build_prediction_graph(20, 16)
             init = tf.global_variables_initializer()
             sess = tf.Session(config=tf.ConfigProto(allow_soft_placement=True))
             sess.run(init)
             saver = tf.train.Saver()
-            saver.restore(sess, "code_outputs/2017_08_03_09_40_06/final_model_params.ckpt")
+            saver.restore(sess, "code_outputs/2017_08_08_21_58_33/final_model_params.ckpt")
             source = None
             start = time.clock()
             for datapoint in subset:
@@ -654,10 +658,11 @@ def debug_test(device):
                 else:
                     source = np.concatenate([source, s.reshape((1, s.shape[0]))])
             model_input = {"source:0": source[:, :-1]}
-            rnn_pred, auto_out, ae_pred, max_pred, max_sequence, z = sess.run(prediction_graph, feed_dict=model_input)
-            np.save("Data/random.npy", z)
+            rnn_pred = sess.run(prediction_graph)
+            #np.save("visualization/ae_multi.npy", z)
             #l = len(rnn_indices)
-        for n in range(len(subset)):
+        max_sens = []
+        for n in range(20):
             s_sentence = ""
             for idx in subset[n]:
                 if idx == 0:
@@ -665,47 +670,52 @@ def debug_test(device):
                 token = vocab[idx]
                 s_sentence = s_sentence + " " + token
             print("Origin : " + s_sentence)
-            max_prediction = ""
-            for t in range(16):
-                m_p = max_pred[t]
-                m_p = m_p[n]
-                max_prediction += (" " + vocab[m_p])
-            print("Greedy : " + max_prediction)
-            for i in range(5):
-                rnn_sample = ""
-                ae_sample = ""
-                for t in range(16):
-                    r_p = rnn_pred[t]
-                    r_p = r_p[n]
-                    r_p = r_p[i]
-                    if r_p == 1:
-                        break
-                    rnn_sample += (" " + vocab[r_p])
-                print(str(i+1) + "th RNN Sample : " + rnn_sample)
-                if test_ae:
-                    for t in range(15):
-                        a_s = ae_pred[i]
-                        a_s = a_s[n]
-                        a_s = a_s[t+1]
-                        if a_s == 1:
-                            break
-                        ae_sample += (" " + vocab[a_s])
-                    print(str(i + 1) + "th AE Sample : " + ae_sample)
-            max_like_idx = max_sequence[n]
-            max_like_sen = ""
+            #max_prediction = ""
+            #for t in range(16):
+            #    m_p = max_pred[t]
+            #    m_p = m_p[n]
+            #    max_prediction += (" " + vocab[m_p])
+            #print("Greedy : " + max_prediction)
+            rnn_sample = ""
+            ae_sample = ""
             for t in range(16):
                 r_p = rnn_pred[t]
                 r_p = r_p[n]
-                r_p = r_p[max_like_idx]
-                max_like_sen += (" " + vocab[r_p])
-            print("max like : " + max_like_sen)
+                if r_p == 1:
+                    break
+                rnn_sample += (" " + vocab[r_p])
+            print(str(n+1) + "th RNN Sample : " + rnn_sample)
+            #    if test_ae:
+            #        for t in range(15):
+            #            a_s = ae_pred[i]
+            #            a_s = a_s[n]
+            #            a_s = a_s[t+1]
+            #            if a_s == 1:
+            #                break
+            #            ae_sample += (" " + vocab[a_s])
+            #       print(str(i + 1) + "th AE Sample : " + ae_sample)
+            #max_like_idx = max_sequence[n]
+            #max_like_sen = ""
+            #for t in range(16):
+            #    r_p = rnn_pred[t]
+            #    r_p = r_p[n]
+            #    r_p = r_p[max_like_idx]
+            #    if r_p == 1:
+            #        break
+            #    max_like_sen += (" " + vocab[r_p])
+            #print("max like : " + max_like_sen)
+            #max_sens.append(max_like_sen)
+
+        #with open("visualization/ae_multi.txt", "w") as doc:
+        #    for line in max_sens:
+        #        doc.write(line + "\n")
 
 
 def training(device, out_dir):
     print(" AERNN 0.5 ")
     with tf.device(device):
-        builder = BOWRNNBuilder(8196, 256, 256, 512, 512, 16)
-        gradient_update, rnn_loss, ae_loss = builder.build_training_graph()
+        builder = RNNBuilder(8196, 256, 256, 512)
+        gradient_update, rnn_loss = builder.build_training_graph(16)
         init = tf.global_variables_initializer()
         sess = tf.Session(config=tf.ConfigProto(allow_soft_placement=True))
         sess.run(init)
@@ -745,23 +755,19 @@ def training(device, out_dir):
                         source = s.reshape((1, s.shape[0]))
                     else:
                         source = np.concatenate([source, s.reshape((1, s.shape[0]))])
-                model_input = {"source:0": source[:, :-1], "target:0": source[:, 1:], "alpha:0": 0.5}
+                model_input = {"source:0": source[:, :-1], "target:0": source[:, 1:]}
                 start = time.clock()
-                _, r_l, a_l = sess.run([gradient_update, rnn_loss, ae_loss], feed_dict=model_input)
-                a_loss.append(a_l)
+                _, r_l = sess.run([gradient_update, rnn_loss], feed_dict=model_input)
                 r_loss.append(r_l)
                 if iters % 40 == 0:
                     print("The training time per mini batch is " + str(time.clock()-start))
                     print("The maximum sentence length in mini-batch is " + str(l))
                     print("The rnn loss is : " + str(r_l))
-                    print("The ae loss is : " + str(a_l))
                     print("")
 
             if iters % 2000 == 0 and iters is not 0:
                 np.save(os.path.join(out_dir, 'rnn_loss.npy'), r_loss)
-                np.save(os.path.join(out_dir, 'ae_loss.npy'), a_loss)
                 saver.save(sess, out_dir+"/model_params.ckpt")
 
         np.save(os.path.join(out_dir, 'rnn_loss.npy'), r_loss)
-        np.save(os.path.join(out_dir, 'ae_loss.npy'), a_loss)
         saver.save(sess, out_dir + "/final_model_params.ckpt")
