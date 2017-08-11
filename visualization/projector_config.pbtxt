@@ -1,4 +1,4 @@
 embeddings {
   tensor_name: "word_embedding:0"
-  metadata_path: "visualization/iris-latin1.tsv"
+  metadata_path: "iris-latin1.tsv"
 }
