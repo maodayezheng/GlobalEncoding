@@ -1,2 +1,0 @@
-model_checkpoint_path: "latent_embedding.ckpt"
-all_model_checkpoint_paths: "latent_embedding.ckpt"
