@@ -2,10 +2,9 @@ from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.decomposition import LatentDirichletAllocation
 
 
-def wordFrequency(path):
+def wordFrequency(doc):
     vocab = {}
-    with open(path, "r") as doc:
-        for line in doc:
+    for line in doc:
             sentence = line.split(" ")
             for word in sentence:
                 if word in vocab:

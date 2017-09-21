@@ -10,6 +10,7 @@ selected = []
 # Load raw data and remove sentences with undesired tokens 
 with open("books_in_sentences/books_large_p1.txt", "r") as doc:
     for line in doc:
+        line = line.rstrip("\n")
         if "www." in line or "***" in line or "isbn" in line or "# " in line or "copyright" in line or ".co.uk" in line:
             continue
         selected.append(line)
@@ -19,11 +20,11 @@ with open("books_in_sentences/books_large_p1.txt", "r") as doc:
 
 # Save selected sentences
 sentences_save_path = "selected" + str(total) + "_origin.txt"
-with open("data/"+ sentences_save_path, "w") as doc:
+with open("data/" + sentences_save_path, "w") as doc:
     for line in selected:
-        doc.write(line)
+        doc.write(line + "\n")
 
-vocab = wordFrequency("data/" + sentences_save_path)
+vocab = wordFrequency(selected)
 words = []
 for k, v in vocab:
     if k is not "\n":
