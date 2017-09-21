@@ -24,6 +24,7 @@ with open("data/" + sentences_save_path, "w") as doc:
     for line in selected:
         doc.write(line + "\n")
 
+# Calculate the word frequency
 vocab = wordFrequency(selected)
 words = []
 for k, v in vocab:
@@ -41,33 +42,29 @@ with open("data/" + top_k_saved_path, "w") as doc:
         doc.write(w+"\n")
 
 # Remove top k frequent words
-with open("data"+sentences_save_path, "r") as raw, open("data/selected_500.txt", "w") as doc:
-    for line in raw:
-        raw_sentence = line.split(" ")
-        sentence = []
-        for w in raw_sentence:
-            if w not in top_k:
-                sentence.append(w)
-        if len(sentence) != 0:
-            s = " ".join(sentence)
-            doc.write(s + "\n")
+doc_dropped = []
+for s in selected:
+    print(s)
+    sentence_full = s.split(" ")
+    sentence_dropped = []
+    for w in sentence_full:
+        if w not in top_k:
+            sentence_dropped.append(w)
+    sen = " ".join(sentence_dropped)
+    print(sen)
+    doc_dropped.append(sen)
+
+# Save the dropped sentences
+drop_doc_path = "selected_" + str(total) + "_dropped.txt"
+with open("data/"+drop_doc_path, "w") as doc:
+    for line in doc_dropped:
+        doc.write(line + "\n")
 
 # Training LDA
-content = []
-tf_vectorizer = None
-lda = None
-with open("data/selected_500.txt", "r") as doc:
-    for line in doc:
-        content.append(line)
-    tf_vectorizer = CountVectorizer(max_df=0.95, min_df=2,
-                                    max_features=None,
-                                    stop_words='english')
-    tf = tf_vectorizer.fit_transform(content)
-    lda = LatentDirichletAllocation(n_topics=100, max_iter=5,
-                                    learning_method='online',
-                                    learning_offset=50.,
-                                    random_state=0)
-    lda.fit(tf)
+tf_vectorizer = CountVectorizer(max_df=0.95, min_df=2, max_features=None, stop_words='english')
+tf = tf_vectorizer.fit_transform(doc_dropped)
+lda = LatentDirichletAllocation(n_topics=10, max_iter=5, learning_method='online', learning_offset=50., random_state=0)
+lda.fit(tf)
 vocab_dict = tf_vectorizer.vocabulary_
 components = lda.components_
 component_names = tf_vectorizer.get_feature_names()
@@ -88,8 +85,9 @@ tf_sentence_vectorizer = CountVectorizer(max_df=0.95, min_df=2,
                                          vocabulary=vocab_dict)
 
 # Replace words with their topic id and save the results
-with open("data/selected_500_raw.txt", "r") as raw, open("data/selected_500.txt", "w") as doc:
-    for line in raw:
+topic_sentence_path = "selected_" + str(total) + "_topic_sentence.txt"
+with open("data/" + topic_sentence_path, "w") as doc:
+    for line in selected:
         raw_sentence = line.split(" ")
         sentence = []
         for w in raw_sentence:
