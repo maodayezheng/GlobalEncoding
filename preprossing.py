@@ -2,7 +2,7 @@ import numpy as np
 import pickle
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.decomposition import LatentDirichletAllocation
-from Utils import wordFrequency, ldaTopicToWords
+from Utils import wordFrequency
 count = 0
 total = 500
 k = 50
@@ -74,17 +74,13 @@ with open('data/params/lda_params.save', 'wb') as f:
     pickle.dump(lda_params, f, protocol=pickle.HIGHEST_PROTOCOL)
 
 # Save topics and their associate words
-topic_word_list = []
 for topic_idx, topic in enumerate(components):
     message = "topic_%d" % topic_idx
     print(message)
     idx = topic.argsort()
-    words = []
     with open("data/topics/" + message + ".txt", "w") as doc:
         for i in idx:
-            words.append(component_names[i])
             doc.write(component_names[i] + "\n")
-    topic_word_list.append(words)
 
 tf_sentence_vectorizer = CountVectorizer(max_df=0.95, min_df=2,
                                          max_features=None,
@@ -93,7 +89,6 @@ tf_sentence_vectorizer = CountVectorizer(max_df=0.95, min_df=2,
 
 # Replace words with their topic id and save the results
 topic_sentence_path = "selected_%d_topic_sentence.txt" % total
-sequence_with_topic = []
 with open("data/" + topic_sentence_path, "w") as doc:
     for line in selected:
         raw_sentence = line.split(" ")
@@ -108,11 +103,4 @@ with open("data/" + topic_sentence_path, "w") as doc:
             sentence.append(token)
         s = " ".join(sentence)
         print(s)
-        sequence_with_topic.append(s)
         doc.write(s + "\n")
-
-test_sequence = sequence_with_topic[0]
-print("Test the lda sequence ")
-print(test_sequence)
-s = ldaTopicToWords(test_sequence, lda, topic_word_list)
-print(s)
