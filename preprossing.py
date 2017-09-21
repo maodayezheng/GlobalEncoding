@@ -2,7 +2,7 @@ import numpy as np
 import pickle
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.decomposition import LatentDirichletAllocation
-from Utils import wordFrequency
+from Utils import wordFrequency, ldaTopicToWords
 count = 0
 total = 500
 k = 50
@@ -33,7 +33,7 @@ for w, v in vocab:
         words.append(w)
 n_tokens = len(words)
 print(n_tokens)
-top_k = words[0:50]
+top_k = words[0:k]
 
 # Save top k frequent words 
 top_k_saved_path = "top_%d_words.txt" % k
@@ -73,15 +73,18 @@ lda_params = lda.get_params(deep=True)
 with open('data/params/lda_params.save', 'wb') as f:
     pickle.dump(lda_params, f, protocol=pickle.HIGHEST_PROTOCOL)
 
-# Save topics and their associate words 
+# Save topics and their associate words
+topic_word_list = []
 for topic_idx, topic in enumerate(components):
     message = "topic_%d" % topic_idx
     print(message)
     idx = topic.argsort()
     words = []
-    with open("data/" + message + ".txt", "w") as doc:
+    with open("data/topics/" + message + ".txt", "w") as doc:
         for i in idx:
+            words.append(component_names[i])
             doc.write(component_names[i] + "\n")
+    topic_word_list.append(words)
 
 tf_sentence_vectorizer = CountVectorizer(max_df=0.95, min_df=2,
                                          max_features=None,
@@ -90,6 +93,7 @@ tf_sentence_vectorizer = CountVectorizer(max_df=0.95, min_df=2,
 
 # Replace words with their topic id and save the results
 topic_sentence_path = "selected_%d_topic_sentence.txt" % total
+sequence_with_topic = []
 with open("data/" + topic_sentence_path, "w") as doc:
     for line in selected:
         raw_sentence = line.split(" ")
@@ -100,8 +104,15 @@ with open("data/" + topic_sentence_path, "w") as doc:
                 tf = tf_sentence_vectorizer.fit_transform([token])
                 topic_distribution = lda.transform(tf)
                 t_idx = np.argmax(topic_distribution)
-                token = "<topic_%d>" % t_idx
+                token = "<topic_%d_>" % t_idx
             sentence.append(token)
         s = " ".join(sentence)
         print(s)
+        sequence_with_topic.append(s)
         doc.write(s + "\n")
+
+test_sequence = sequence_with_topic[0]
+print("Test the lda sequence ")
+print(test_sequence)
+s = ldaTopicToWords(test_sequence, lda, topic_word_list)
+print(s)
